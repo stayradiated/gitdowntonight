@@ -27,3 +27,9 @@ node index.js --limit -1
 ```
 node index.js --poll 30
 ```
+
+**Set owner without having to type it in every time**
+
+```
+node index.js --owner stayradiated
+```

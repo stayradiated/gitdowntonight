@@ -5,10 +5,12 @@ const flags = require('flags')
 
 flags.defineInteger('poll', 0, 'Polling mode')
 flags.defineInteger('limit', 15, 'Limit results')
+flags.defineString('owner', '', 'Owner')
 flags.parse()
 
 const POLL = flags.get('poll')
 const LIMIT = flags.get('limit')
+const OWNER = flags.get('owner')
 const GH_ACCESS_TOKEN = process.env.GH_ACCESS_TOKEN
 
 function request (method, path, body) {
@@ -42,6 +44,10 @@ function getRepositories (owner) {
       }
     }`,
   }).then((result) => {
+    if (result.message != null) {
+      throw new Error(result.message)
+    }
+
     return result.data.repositoryOwner.repositories.edges.map((edge) => {
       return edge.node.name
     })
@@ -80,11 +86,19 @@ function getTotalContributions (owner) {
 }
 
 function promptOwnerName () {
+  if (OWNER.length > 0) {
+    return Promise.resolve(OWNER)
+  }
+
   return inquirer.prompt([{
     name: 'owner',
     message: '>>> Please enter an organisation name\n',
     default: 'mishguruorg',
   }]).then((result) => result.owner)
+}
+
+function handleError (error) {
+  console.error(chalk.red(`>>> ${error.message}`))
 }
 
 function displayContributions (repoOwner) {
@@ -99,22 +113,22 @@ function displayContributions (repoOwner) {
         chalk.grey('contributions')
       )
     })
-  }).catch((error) => {
-    console.error('!!!', error)
   })
 }
 
 function pollContributions (owner, timeout) {
-  displayContributions(owner).then(() => {
-    console.log(chalk.grey(`>>> Waiting ${timeout / 1000} seconds...`))
-    setTimeout(pollContributions.bind(null, owner, timeout), timeout)
-  })
+  displayContributions(owner)
+    .catch(handleError)
+    .then(() => {
+      console.log(chalk.grey(`>>> Waiting ${timeout / 1000} seconds...`))
+      setTimeout(pollContributions.bind(null, owner, timeout), timeout)
+    })
 }
 
 promptOwnerName().then((owner) => {
   if (POLL > 0) {
     pollContributions(owner, POLL * 1000)
   } else {
-    displayContributions(owner)
+    displayContributions(owner).catch(handleError)
   }
 })
