@@ -1,0 +1,22 @@
+{
+  "name": "gitdowntonight",
+  "version": "1.0.0",
+  "description": "## Installation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stayradiated/gitdowntonight.git"
+  },
+  "author": "George Czabania <george@czabania.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stayradiated/gitdowntonight/issues"
+  },
+  "homepage": "https://github.com/stayradiated/gitdowntonight#readme",
+  "dependencies": {
+    "isomorphic-fetch": "^2.2.1"
+  }
+}
