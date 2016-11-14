@@ -6,6 +6,7 @@
 git clone https://github.com/stayradiated/gitdowntonight
 cd gitdowntonight
 yarn
+npm link
 ```
 
 ## Usage
@@ -13,29 +14,30 @@ yarn
 **By default it will display the top 15 contributors**
 
 ```
-GH_ACCESS_TOKEN=<access_token_here> node index.js
+export GH_ACCESS_TOKEN=<access_token_here>
+gitdowntonight
 ```
 
 **Display all contributors**
 
 ```
-node index.js --limit -1
+gitdowntonight --limit -1
 ```
 
 **Poll every 30 seconds**
 
 ```
-node index.js --poll 30
+gitdowntonight --poll 30
 ```
 
 **Set owner without having to type it in every time**
 
 ```
-node index.js --owner stayradiated
+gitdowntonight --owner stayradiated
 ```
 
 **Save changes to a text file**
 
 ```
-node index.js --out ranking.txt
+gitdowntonight --out ranking.txt
 ```
