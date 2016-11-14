@@ -1,16 +1,25 @@
+const fs = require('fs')
+const promisify = require('es6-promisify')
 const fetch = require('isomorphic-fetch')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
 const flags = require('flags')
+const lockfile = require('lockfile')
+
+const writeFile = promisify(fs.writeFile, fs)
+const lock = promisify(lockfile.lock, lockfile)
+const unlock = promisify(lockfile.unlock, lockfile)
 
 flags.defineInteger('poll', 0, 'Polling mode')
 flags.defineInteger('limit', 15, 'Limit results')
 flags.defineString('owner', '', 'Owner')
+flags.defineString('out', '', 'Write ranking to text file')
 flags.parse()
 
 const POLL = flags.get('poll')
 const LIMIT = flags.get('limit')
 const OWNER = flags.get('owner')
+const OUT = flags.get('out')
 const GH_ACCESS_TOKEN = process.env.GH_ACCESS_TOKEN
 
 function request (method, path, body) {
@@ -98,10 +107,20 @@ function promptOwnerName () {
 }
 
 function handleError (error) {
-  console.error(chalk.red(`>>> ${error.message}`))
+  const message = error.message != null ? error.message : error
+  console.error(chalk.red(`>>> ${message}`))
 }
 
-function displayContributions (repoOwner) {
+function saveContributions (results, fp) {
+  const lockFp = `${fp}.lock`
+  lock(lockFp)
+    .then(() => writeFile(fp, JSON.stringify(results)))
+    .catch(handleError)
+    .then(() => unlock(lockFp))
+    .catch(handleError)
+}
+
+function fetchContributions (repoOwner) {
   console.log(chalk.grey('>>> Processing repositories...'))
   return getTotalContributions(repoOwner)
   .then((result) => {
@@ -113,11 +132,15 @@ function displayContributions (repoOwner) {
         chalk.grey('contributions')
       )
     })
+
+    if (OUT.length > 0) {
+      saveContributions(result, OUT)
+    }
   })
 }
 
 function pollContributions (owner, timeout) {
-  displayContributions(owner)
+  fetchContributions(owner)
     .catch(handleError)
     .then(() => {
       console.log(chalk.grey(`>>> Waiting ${timeout / 1000} seconds...`))
@@ -129,6 +152,6 @@ promptOwnerName().then((owner) => {
   if (POLL > 0) {
     pollContributions(owner, POLL * 1000)
   } else {
-    displayContributions(owner).catch(handleError)
+    fetchContributions(owner).catch(handleError)
   }
 })
