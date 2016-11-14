@@ -33,3 +33,9 @@ node index.js --poll 30
 ```
 node index.js --owner stayradiated
 ```
+
+**Save changes to a text file**
+
+```
+node index.js --out ranking.txt
+```
