@@ -1,7 +1,14 @@
 const fetch = require('isomorphic-fetch')
 const inquirer = require('inquirer')
 const chalk = require('chalk')
+const flags = require('flags')
 
+flags.defineInteger('poll', 0, 'Polling mode')
+flags.defineInteger('limit', 15, 'Limit results')
+flags.parse()
+
+const POLL = flags.get('poll')
+const LIMIT = flags.get('limit')
 const GH_ACCESS_TOKEN = process.env.GH_ACCESS_TOKEN
 
 function request (method, path, body) {
@@ -66,32 +73,48 @@ function getTotalContributions (owner) {
       return tally
     }, new Map())
   }).then((tally) => {
-    return [...tally.entries()].sort((a, b) => b[1] - a[1])
+    return [...tally.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, LIMIT)
   })
 }
 
-function displayContributions () {
+function promptOwnerName () {
   return inquirer.prompt([{
     name: 'owner',
     message: '>>> Please enter an organisation name\n',
     default: 'mishguruorg',
-  }])
-    .then((result) => {
-      console.log(chalk.grey('>>> Processing repositories...'))
-      return getTotalContributions(result.owner)
-    })
-    .then((result) => {
-      result.forEach(([owner, contributions], i) => {
-        console.log(
-          chalk.grey(`>>> ${i + 1}.`),
-          chalk.yellow(owner) + chalk.grey(':'),
-          chalk.blue(contributions),
-          chalk.grey('contributions')
-        )
-      })
-    }).catch((error) => {
-      console.error('!!!', error)
-    })
+  }]).then((result) => result.owner)
 }
 
-displayContributions()
+function displayContributions (repoOwner) {
+  console.log(chalk.grey('>>> Processing repositories...'))
+  return getTotalContributions(repoOwner)
+  .then((result) => {
+    result.forEach(([owner, contributions], i) => {
+      console.log(
+        chalk.grey(`>>> ${i + 1}.`),
+        chalk.yellow(owner) + chalk.grey(':'),
+        chalk.blue(contributions),
+        chalk.grey('contributions')
+      )
+    })
+  }).catch((error) => {
+    console.error('!!!', error)
+  })
+}
+
+function pollContributions (owner, timeout) {
+  displayContributions(owner).then(() => {
+    console.log(chalk.grey(`>>> Waiting ${timeout / 1000} seconds...`))
+    setTimeout(pollContributions.bind(null, owner, timeout), timeout)
+  })
+}
+
+promptOwnerName().then((owner) => {
+  if (POLL > 0) {
+    pollContributions(owner, POLL * 1000)
+  } else {
+    displayContributions(owner)
+  }
+})
