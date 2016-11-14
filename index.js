@@ -7,6 +7,7 @@ const flags = require('flags')
 const lockfile = require('lockfile')
 
 const writeFile = promisify(fs.writeFile, fs)
+const readFile = promisify(fs.readFile, fs)
 const lock = promisify(lockfile.lock, lockfile)
 const unlock = promisify(lockfile.unlock, lockfile)
 
@@ -114,7 +115,13 @@ function handleError (error) {
 function saveContributions (results, fp) {
   const lockFp = `${fp}.lock`
   lock(lockFp)
-    .then(() => writeFile(fp, JSON.stringify(results)))
+    .then(() => readFile(fp, 'utf8').then((oldData) => {
+      const data = JSON.stringify(results)
+      if (data !== oldData) {
+        console.log(chalk.green(`>>> Saving to ${fp}`))
+        return writeFile(fp, JSON.stringify(results))
+      }
+    }))
     .catch(handleError)
     .then(() => unlock(lockFp))
     .catch(handleError)
