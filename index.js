@@ -60,11 +60,7 @@ function getTotalContributions (owner) {
     return results.reduce((tally, repoContributors) => {
       repoContributors.forEach((contributor) => {
         const {id, contributions} = contributor
-        if (!tally.has(id)) {
-          tally.set(id, contributions)
-        } else {
-          tally.set(id, tally.get(id) + contributions)
-        }
+        tally.set(id, (tally.get(id) || 0) + contributions)
         return tally
       })
       return tally
