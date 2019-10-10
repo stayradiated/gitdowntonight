@@ -38,30 +38,46 @@ function graphql (body) {
   return request('POST', '/graphql', body)
 }
 
-function getRepositories (owner) {
-  return graphql({
-    variables: {owner},
-    query: `query getRepositories($owner: String!) {
-      repositoryOwner(login: $owner) {
-        repositories(first: 30) {
-          totalCount
-          edges {
-            node {
-              name
+async function getRepositories (owner) {
+  const repositories = []
+
+  let after = null
+  while (true) {
+    const result = await graphql({
+      variables: {owner, after},
+      query: `query getRepositories($owner: String!, $after: String) {
+        repositoryOwner(login: $owner) {
+          repositories(first: 50, after: $after) {
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+            edges {
+              node {
+                name
+              }
             }
           }
         }
-      }
-    }`,
-  }).then((result) => {
+      }`,
+    })
+
     if (result.message != null) {
       throw new Error(result.message)
     }
 
-    return result.data.repositoryOwner.repositories.edges.map((edge) => {
+    repositories.push(...result.data.repositoryOwner.repositories.edges.map((edge) => {
       return edge.node.name
-    })
-  })
+    }))
+
+    const pageInfo = result.data.repositoryOwner.repositories.pageInfo
+    const { hasNextPage } = pageInfo
+    after = pageInfo.endCursor
+    if (hasNextPage) {
+      continue
+    }
+    return repositories
+  }
 }
 
 function getContributors (owner, repo) {
